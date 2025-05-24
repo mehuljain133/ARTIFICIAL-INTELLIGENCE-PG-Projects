@@ -1,22 +1,20 @@
-# Unit-IV Problem Solving and Search Techniques: Problem Characteristics, Production Systems, Control Strategies, Breadth First Search, Depth First Search, iterative deepening, uniform cost search, Hill climbing and its Variations, simulated annealing, genetic algorithm search.
+# Unit-IV Problem Solving and Search Techniques: Problem Characteristics, Production Systems, Control Strategies, Breadth First Search, Depth First Search, iterative deepening, uniform cost search, Hill climbing and its Variations, simulated annealing, genetic algorithm search. Heuristics Search Techniques: Best First Search, A* algorithm, AO* algorithm, Minmax & game trees, refining minmax, Alpha – Beta pruning, Constraint Satisfaction Problem, Means-End Analysis.
 
-# === ARTIFICIAL INTELLIGENCE - UNIT IV: SEARCH TECHNIQUES ===
-# Topics: Problem Solving, Production Systems, Control Strategies, Various Search Algorithms
+# === ARTIFICIAL INTELLIGENCE - UNIT IV: PROBLEM SOLVING & HEURISTIC SEARCH ===
 
-import math, random, heapq
-from collections import deque
+import heapq, random, math
+from collections import deque, defaultdict
 
-print("=== Search Techniques Demo ===")
+print("=== UNIT IV - ALL-IN-ONE DEMO ===")
 
-# --- Problem Definition (8-Puzzle Simplified to Numbers) ---
+# ---------------- BASIC PROBLEM DEFINITION ----------------
 class Problem:
     def __init__(self, start, goal):
         self.start = start
         self.goal = goal
 
     def actions(self, state):
-        # Actions: +1, -1 (Just for demo simplicity)
-        return [state + 1, state - 1]
+        return [state + 1, state - 1]  # Simplified
 
     def goal_test(self, state):
         return state == self.goal
@@ -24,139 +22,202 @@ class Problem:
     def cost(self, a, b):
         return abs(a - b)
 
-# --- Breadth-First Search (BFS) ---
+# ---------------- UNINFORMED SEARCHES ----------------
 def bfs(problem):
     frontier = deque([problem.start])
     explored = set()
     while frontier:
         state = frontier.popleft()
-        print(f"BFS visiting: {state}")
-        if problem.goal_test(state):
-            print("Goal found!")
-            return
+        print("BFS:", state)
+        if problem.goal_test(state): return state
         explored.add(state)
         for neighbor in problem.actions(state):
             if neighbor not in explored and neighbor not in frontier:
                 frontier.append(neighbor)
 
-# --- Depth-First Search (DFS) ---
 def dfs(problem):
     frontier = [problem.start]
     explored = set()
     while frontier:
         state = frontier.pop()
-        print(f"DFS visiting: {state}")
-        if problem.goal_test(state):
-            print("Goal found!")
-            return
-        explored.add(state)
-        for neighbor in problem.actions(state):
-            if neighbor not in explored and neighbor not in frontier:
-                frontier.append(neighbor)
-
-# --- Iterative Deepening DFS ---
-def iddfs(problem, depth_limit=10):
-    def dls(state, depth):
-        print(f"Visiting {state} at depth {depth}")
-        if problem.goal_test(state):
-            print("Goal found!")
-            return True
-        if depth == 0:
-            return False
-        for neighbor in problem.actions(state):
-            if dls(neighbor, depth - 1):
-                return True
-        return False
-    for depth in range(depth_limit):
-        print(f"\nDepth level: {depth}")
-        if dls(problem.start, depth):
-            return
-
-# --- Uniform Cost Search ---
-def uniform_cost_search(problem):
-    frontier = [(0, problem.start)]
-    explored = set()
-    while frontier:
-        cost, state = heapq.heappop(frontier)
-        print(f"UCS visiting: {state} with cost {cost}")
-        if problem.goal_test(state):
-            print("Goal found!")
-            return
+        print("DFS:", state)
+        if problem.goal_test(state): return state
         explored.add(state)
         for neighbor in problem.actions(state):
             if neighbor not in explored:
-                total_cost = cost + problem.cost(state, neighbor)
-                heapq.heappush(frontier, (total_cost, neighbor))
+                frontier.append(neighbor)
 
-# --- Hill Climbing ---
+def iterative_deepening(problem, limit=10):
+    def dls(state, depth):
+        print(f"IDDFS: {state} at depth {depth}")
+        if problem.goal_test(state): return True
+        if depth == 0: return False
+        for neighbor in problem.actions(state):
+            if dls(neighbor, depth - 1): return True
+        return False
+    for d in range(limit):
+        if dls(problem.start, d): return
+
+def uniform_cost_search(problem):
+    frontier = [(0, problem.start)]
+    visited = set()
+    while frontier:
+        cost, state = heapq.heappop(frontier)
+        print("UCS:", state)
+        if problem.goal_test(state): return state
+        visited.add(state)
+        for neighbor in problem.actions(state):
+            if neighbor not in visited:
+                heapq.heappush(frontier, (cost + problem.cost(state, neighbor), neighbor))
+
+# ---------------- HEURISTIC SEARCHES ----------------
+def best_first_search(problem, heuristic):
+    frontier = [(heuristic(problem.start), problem.start)]
+    visited = set()
+    while frontier:
+        _, state = heapq.heappop(frontier)
+        print("BestFS:", state)
+        if problem.goal_test(state): return state
+        visited.add(state)
+        for neighbor in problem.actions(state):
+            if neighbor not in visited:
+                heapq.heappush(frontier, (heuristic(neighbor), neighbor))
+
+def a_star(problem, heuristic):
+    frontier = [(heuristic(problem.start), 0, problem.start)]
+    visited = set()
+    while frontier:
+        f, cost, state = heapq.heappop(frontier)
+        print("A*:", state)
+        if problem.goal_test(state): return state
+        visited.add(state)
+        for neighbor in problem.actions(state):
+            if neighbor not in visited:
+                g = cost + problem.cost(state, neighbor)
+                h = heuristic(neighbor)
+                heapq.heappush(frontier, (g + h, g, neighbor))
+
+# ---------------- AO* ALGORITHM (Simple Mock) ----------------
+def ao_star():
+    print("AO* (Mock): Applied for AND/OR graph problems. Complex, typically used in planning.")
+
+# ---------------- HILL CLIMBING + SIMULATED ANNEALING ----------------
 def hill_climbing(problem, heuristic):
     current = problem.start
     while True:
         neighbors = problem.actions(current)
-        if not neighbors:
-            break
         next_state = max(neighbors, key=heuristic)
-        if heuristic(next_state) <= heuristic(current):
-            break
+        if heuristic(next_state) <= heuristic(current): break
         current = next_state
-        print(f"Hill Climbing: moving to {current}")
-    print("Final state:", current)
+        print("Hill:", current)
+    print("Final:", current)
 
-# --- Simulated Annealing ---
 def simulated_annealing(problem, heuristic, temp=1000, decay=0.95):
     current = problem.start
     while temp > 1:
-        neighbors = problem.actions(current)
-        next_state = random.choice(neighbors)
-        delta_e = heuristic(next_state) - heuristic(current)
-        if delta_e > 0 or random.random() < math.exp(delta_e / temp):
+        next_state = random.choice(problem.actions(current))
+        delta = heuristic(next_state) - heuristic(current)
+        if delta > 0 or random.random() < math.exp(delta / temp):
             current = next_state
-        print(f"SA state: {current} at temp {temp:.2f}")
+        print(f"SA: {current} at temp {temp:.1f}")
         temp *= decay
-    print("Final state:", current)
+    print("Final:", current)
 
-# --- Genetic Algorithm (Demo) ---
-def genetic_algorithm(goal, population_size=6, generations=20):
-    def fitness(individual):
-        return -abs(goal - individual)
-
-    population = [random.randint(0, 20) for _ in range(population_size)]
-    for gen in range(generations):
+# ---------------- GENETIC ALGORITHM ----------------
+def genetic_algorithm(goal, pop_size=6, generations=10):
+    def fitness(x): return -abs(goal - x)
+    population = [random.randint(0, 20) for _ in range(pop_size)]
+    for g in range(generations):
         population = sorted(population, key=fitness, reverse=True)
-        print(f"Gen {gen}: {population}")
-        if population[0] == goal:
-            print("Goal found!")
-            return
-        next_gen = population[:2]  # Elitism
-        while len(next_gen) < population_size:
-            parent1, parent2 = random.choices(population[:4], k=2)
-            child = (parent1 + parent2) // 2
-            if random.random() < 0.1:  # Mutation
+        print(f"Gen{g}:", population)
+        if population[0] == goal: return population[0]
+        next_gen = population[:2]
+        while len(next_gen) < pop_size:
+            p1, p2 = random.choices(population[:4], k=2)
+            child = (p1 + p2) // 2
+            if random.random() < 0.1:
                 child += random.choice([-1, 1])
             next_gen.append(child)
         population = next_gen
-    print("Best individual:", population[0])
 
-# --- Demo Run ---
-demo_problem = Problem(start=2, goal=7)
+# ---------------- MINIMAX + ALPHA-BETA ----------------
+def minimax(state, depth, maximizing):
+    if depth == 0: return state
+    if maximizing:
+        return max(minimax(state - 1, depth - 1, False),
+                   minimax(state + 1, depth - 1, False))
+    else:
+        return min(minimax(state - 1, depth - 1, True),
+                   minimax(state + 1, depth - 1, True))
+
+def alpha_beta(state, depth, alpha, beta, maximizing):
+    if depth == 0:
+        return state
+    if maximizing:
+        max_eval = -float("inf")
+        for child in [state + 1, state - 1]:
+            eval = alpha_beta(child, depth - 1, alpha, beta, False)
+            max_eval = max(max_eval, eval)
+            alpha = max(alpha, eval)
+            if beta <= alpha: break
+        return max_eval
+    else:
+        min_eval = float("inf")
+        for child in [state + 1, state - 1]:
+            eval = alpha_beta(child, depth - 1, alpha, beta, True)
+            min_eval = min(min_eval, eval)
+            beta = min(beta, eval)
+            if beta <= alpha: break
+        return min_eval
+
+# ---------------- CONSTRAINT SATISFACTION (Simple) ----------------
+def csp():
+    variables = ['X', 'Y']
+    domains = {'X': [1, 2], 'Y': [2, 3]}
+    constraints = lambda x, y: x != y
+    for x in domains['X']:
+        for y in domains['Y']:
+            if constraints(x, y):
+                print(f"CSP Solution: X={x}, Y={y}")
+
+# ---------------- MEANS-END ANALYSIS ----------------
+def means_end(start, goal):
+    print(f"Start: {start}, Goal: {goal}")
+    while start != goal:
+        diff = goal - start
+        step = 1 if diff > 0 else -1
+        start += step
+        print("Step to:", start)
+
+# ---------------- DEMO EXECUTION ----------------
+p = Problem(2, 7)
+heuristic = lambda x: -abs(x - p.goal)
 
 print("\n--- BFS ---")
-bfs(demo_problem)
-
+bfs(p)
 print("\n--- DFS ---")
-dfs(demo_problem)
-
+dfs(p)
 print("\n--- Iterative Deepening ---")
-iddfs(demo_problem)
-
+iterative_deepening(p)
 print("\n--- Uniform Cost Search ---")
-uniform_cost_search(demo_problem)
-
+uniform_cost_search(p)
+print("\n--- Best First Search ---")
+best_first_search(p, heuristic)
+print("\n--- A* Search ---")
+a_star(p, heuristic)
 print("\n--- Hill Climbing ---")
-hill_climbing(demo_problem, heuristic=lambda x: -abs(x - demo_problem.goal))
-
+hill_climbing(p, heuristic)
 print("\n--- Simulated Annealing ---")
-simulated_annealing(demo_problem, heuristic=lambda x: -abs(x - demo_problem.goal))
-
+simulated_annealing(p, heuristic)
 print("\n--- Genetic Algorithm ---")
-genetic_algorithm(goal=demo_problem.goal)
+genetic_algorithm(p.goal)
+print("\n--- Minimax (starting at 3, depth 3) ---")
+print("Minimax result:", minimax(3, 3, True))
+print("\n--- Alpha-Beta (starting at 3, depth 3) ---")
+print("Alpha-Beta result:", alpha_beta(3, 3, -math.inf, math.inf, True))
+print("\n--- Constraint Satisfaction Problem ---")
+csp()
+print("\n--- Means-End Analysis ---")
+means_end(2, 7)
+print("\n--- AO* (Not implemented, theory only) ---")
+ao_star()
